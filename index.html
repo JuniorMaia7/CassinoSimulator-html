@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Slots</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #d4af37;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+            color: #b22222;
+        }
+        #slot-machine, #deposit-form {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fff;
+            border: 2px solid #b22222;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 300px;
+            text-align: center;
+        }
+        #slot-machine.active, #deposit-form.active {
+            display: flex;
+        }
+        h2 {
+            color: #b22222;
+        }
+        #reels {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .reel {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            border: 2px solid #b22222;
+            margin: 0 5px;
+            background-color: #f4f4f4;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+        .reel .symbols {
+            position: absolute;
+            transition: transform 1s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+        .reel .symbols div {
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #b22222;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #800000;
+        }
+        #message {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        #balance {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        form input {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+            width: 200px;
+            border: 1px solid #b22222;
+            border-radius: 4px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="slot-machine" class="active">
+        <div id="balance">Saldo: R$ <span id="current-balance">0.00</span></div>
+        <div id="reels">
+            <div class="reel" id="reel1">
+                <div class="symbols" id="symbols1"></div>
+            </div>
+            <div class="reel" id="reel2">
+                <div class="symbols" id="symbols2"></div>
+            </div>
+            <div class="reel" id="reel3">
+                <div class="symbols" id="symbols3"></div>
+            </div>
+        </div>
+        <input type="number" id="bet-amount" placeholder="Insira sua aposta (R$)" step="0.01" min="0.15" max="45.00">
+        <button id="spin-button">Girar</button>
+        <button id="deposit-button">Depositar</button>
+        <div id="message"></div>
+    </div>
+
+    <div id="deposit-form">
+        <h2>Depósito</h2>
+        <form>
+            <label for="deposit-amount">Quantia a depositar (R$):</label>
+            <input type="number" id="deposit-amount" placeholder="Ex: 100.00" step="0.01" min="0.01">
+            <button type="button" id="confirm-deposit-button">Depositar</button>
+        </form>
+    </div>
+
+    <script>
+        let balance = 0;
+        const symbolsArray = ['🍒', '🍋', '🔔'];
+        let currentPositions = [0, 0, 0];
+
+        document.getElementById('spin-button').addEventListener('click', spin);
+        document.getElementById('deposit-button').addEventListener('click', showDepositForm);
+        document.getElementById('confirm-deposit-button').addEventListener('click', depositMoney);
+
+        function spin() {
+            const betAmount = parseFloat(document.getElementById('bet-amount').value);
+            if (isNaN(betAmount) || betAmount < 0.15 || betAmount > 45.00) {
+                document.getElementById('message').textContent = 'Aposta inválida! Aposta mínima é R$0.15 e máxima é R$45.00.';
+                return;
+            }
+
+            if (betAmount > balance) {
+                document.getElementById('message').textContent = 'Saldo insuficiente! Faça um depósito.';
+                return;
+            }
+
+            balance -= betAmount;
+            updateBalance();
+
+            for (let i = 0; i < 3; i++) {
+                currentPositions[i] = (currentPositions[i] + Math.floor(Math.random() * symbolsArray.length)) % symbolsArray.length;
+                animateReel(i);
+            }
+
+            setTimeout(() => {
+                checkWin();
+            }, 1000);
+        }
+
+        function animateReel(index) {
+            const reel = document.getElementById(`symbols${index + 1}`);
+            const mirroredSymbols = [...symbolsArray, ...symbolsArray, ...symbolsArray]; // Espelha os símbolos
+            reel.innerHTML = mirroredSymbols.map((symbol) => `<div>${symbol}</div>`).join('');
+            reel.style.transform = `translateY(${-currentPositions[index] * 50}px)`;
+        }
+
+        function checkWin() {
+            const reel1 = symbolsArray[currentPositions[0]];
+            const reel2 = symbolsArray[currentPositions[1]];
+            const reel3 = symbolsArray[currentPositions[2]];
+
+            if (reel1 === reel2 && reel2 === reel3) {
+                let winnings = parseFloat(document.getElementById('bet-amount').value) * 25;
+                balance += winnings;
+                document.getElementById('message').textContent = 'Você ganhou! Prêmio: R$' + winnings.toFixed(2);
+            } else {
+                document.getElementById('message').textContent = 'Tente novamente!';
+            }
+        }
+
+        function showDepositForm() {
+            document.getElementById('slot-machine').classList.remove('active');
+            document.getElementById('deposit-form').classList.add('active');
+        }
+
+        function depositMoney() {
+            const depositAmount = parseFloat(document.getElementById('deposit-amount').value);
+            if (isNaN(depositAmount) || depositAmount <= 0) {
+                alert('Quantia inválida! Por favor, insira um valor válido.');
+                return;
+            }
+
+            balance += depositAmount;
+            updateBalance();
+
+            document.getElementById('deposit-form').classList.remove('active');
+            document.getElementById('slot-machine').classList.add('active');
+            document.getElementById('message').textContent = 'Depósito realizado com sucesso! Saldo atualizado.';
+        }
+
+        function updateBalance() {
+            document.getElementById('current-balance').textContent = balance.toFixed(2);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateBalance();
+            initializeReels();
+        });
+
+        function initializeReels() {
+            for (let i = 0; i < 3; i++) {
+                animateReel(i);
+            }
+        }
+    </script>
+</body>
+</html>
